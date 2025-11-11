@@ -1,5 +1,7 @@
 # 🧩 Rubik's Cube Cipher System
+
 # Author: You :)
+
 # Cube layout: [U, F, R, L, B, D], each 3x3 = 54 total stickers.
 
 # === Core Cube Operations ===
@@ -37,22 +39,18 @@ def move(cube, notation):
         f["U"] = rotate_face(f["U"])
         temp = f["F"][:3]
         f["F"][:3], f["R"][:3], f["B"][:3], f["L"][:3] = f["R"][:3], f["B"][:3], f["L"][:3], temp
-
     elif notation == "U'":
         f["U"] = rotate_face_ccw(f["U"])
         temp = f["F"][:3]
         f["F"][:3], f["L"][:3], f["B"][:3], f["R"][:3] = f["L"][:3], f["B"][:3], f["R"][:3], temp
-
     elif notation == "D":
         f["D"] = rotate_face(f["D"])
         temp = f["F"][6:9]
         f["F"][6:9], f["L"][6:9], f["B"][6:9], f["R"][6:9] = f["L"][6:9], f["B"][6:9], f["R"][6:9], temp
-
     elif notation == "D'":
         f["D"] = rotate_face_ccw(f["D"])
         temp = f["F"][6:9]
         f["F"][6:9], f["R"][6:9], f["B"][6:9], f["L"][6:9] = f["R"][6:9], f["B"][6:9], f["L"][6:9], temp
-
     elif notation == "F":
         f["F"] = rotate_face(f["F"])
         temp = [f["U"][6], f["U"][7], f["U"][8]]
@@ -60,7 +58,6 @@ def move(cube, notation):
         f["L"][2], f["L"][5], f["L"][8] = f["D"][2], f["D"][1], f["D"][0]
         f["D"][0], f["D"][1], f["D"][2] = f["R"][6], f["R"][3], f["R"][0]
         f["R"][0], f["R"][3], f["R"][6] = temp
-
     elif notation == "F'":
         f["F"] = rotate_face_ccw(f["F"])
         temp = [f["U"][6], f["U"][7], f["U"][8]]
@@ -68,7 +65,6 @@ def move(cube, notation):
         f["R"][0], f["R"][3], f["R"][6] = f["D"][2], f["D"][1], f["D"][0]
         f["D"][0], f["D"][1], f["D"][2] = f["L"][8], f["L"][5], f["L"][2]
         f["L"][2], f["L"][5], f["L"][8] = temp
-
     elif notation == "B":
         f["B"] = rotate_face(f["B"])
         temp = [f["U"][0], f["U"][1], f["U"][2]]
@@ -76,7 +72,6 @@ def move(cube, notation):
         f["R"][2], f["R"][5], f["R"][8] = f["D"][8], f["D"][7], f["D"][6]
         f["D"][6], f["D"][7], f["D"][8] = f["L"][0], f["L"][3], f["L"][6]
         f["L"][0], f["L"][3], f["L"][6] = temp
-
     elif notation == "B'":
         f["B"] = rotate_face_ccw(f["B"])
         temp = [f["U"][0], f["U"][1], f["U"][2]]
@@ -84,7 +79,6 @@ def move(cube, notation):
         f["L"][0], f["L"][3], f["L"][6] = f["D"][6], f["D"][7], f["D"][8]
         f["D"][6], f["D"][7], f["D"][8] = f["R"][2], f["R"][5], f["R"][8]
         f["R"][2], f["R"][5], f["R"][8] = temp
-
     elif notation == "R":
         f["R"] = rotate_face(f["R"])
         temp = [f["U"][2], f["U"][5], f["U"][8]]
@@ -92,7 +86,6 @@ def move(cube, notation):
         f["F"][2], f["F"][5], f["F"][8] = f["D"][2], f["D"][5], f["D"][8]
         f["D"][2], f["D"][5], f["D"][8] = f["B"][6], f["B"][3], f["B"][0]
         f["B"][0], f["B"][3], f["B"][6] = temp
-
     elif notation == "R'":
         f["R"] = rotate_face_ccw(f["R"])
         temp = [f["U"][2], f["U"][5], f["U"][8]]
@@ -100,7 +93,6 @@ def move(cube, notation):
         f["B"][0], f["B"][3], f["B"][6] = f["D"][8], f["D"][5], f["D"][2]
         f["D"][2], f["D"][5], f["D"][8] = f["F"][2], f["F"][5], f["F"][8]
         f["F"][2], f["F"][5], f["F"][8] = temp
-
     elif notation == "L":
         f["L"] = rotate_face(f["L"])
         temp = [f["U"][0], f["U"][3], f["U"][6]]
@@ -108,7 +100,6 @@ def move(cube, notation):
         f["B"][2], f["B"][5], f["B"][8] = f["D"][6], f["D"][3], f["D"][0]
         f["D"][0], f["D"][3], f["D"][6] = f["F"][0], f["F"][3], f["F"][6]
         f["F"][0], f["F"][3], f["F"][6] = temp
-
     elif notation == "L'":
         f["L"] = rotate_face_ccw(f["L"])
         temp = [f["U"][0], f["U"][3], f["U"][6]]
@@ -148,24 +139,35 @@ def print_cube(cube):
 # === Main Cipher Logic ===
 
 if __name__ == "__main__":
+
+    # Input plaintext and convert to ASCII using ord()
     plaintext = input("Enter plaintext (max 54 chars): ").strip()[:54]
+    ascii_plaintext = [ord(c) for c in plaintext]
+
+    # If the string is shorter than 54 characters, pad with ord('_') (underscore)
+    ascii_plaintext.extend([ord('_')] * (54 - len(ascii_plaintext)))
+
     key_moves = input("Enter key moves (e.g. U R' L F D'): ").strip()
 
-    # Pad plaintext to fill cube
-    cube = list(plaintext.ljust(54, "_"))
+    # Display original cube
+    cube = ascii_plaintext
 
     print("\n--- Original Cube ---")
     print_cube(cube)
 
     # Encrypt
     encrypted = apply_moves(cube[:], key_moves)
+    
     print("--- After Encryption ---")
     print_cube(encrypted)
-    print("Encrypted message:", "".join(encrypted).replace("_", ""))
+    
+    # Convert the encrypted list back to characters (excluding underscores)
+    encrypted_message = "".join([chr(c) for c in encrypted if c != ord('_')])
+    print("Encrypted message:", encrypted_message)
 
     # Decrypt (WALA MUNA)
-    #decrypted = apply_moves(encrypted[:], invert_moves(key_moves))
-    #print("--- After Decryption ---")
-    #print_cube(decrypted)
-
-    #print("Decrypted message:", "".join(decrypted).replace("_", ""))
+    # decrypted = apply_moves(encrypted[:], invert_moves(key_moves))
+    # print("--- After Decryption ---")
+    # print_cube(decrypted)
+    # decrypted_message = "".join([chr(c) for c in decrypted if c != ord('_')])
+    # print("Decrypted message:", decrypted_message)
