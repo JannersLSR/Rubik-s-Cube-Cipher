@@ -1,7 +1,18 @@
 # CUBE CIPHER: MULTI-BLOCK RUBIK'S CUBE ENCRYPTION WITH 256-BIT KEY
 # Cipher Order layout: [U, F, R, L, B, D]
 
+
 import secrets
+import time
+
+# Padding init
+PADDING_BYTES = [
+    0xA1, 0xA2, 0xA3, 0xA4, 0xA5,
+    0xA6, 0xA7, 0xA8, 0xA9, 0xAA,
+    0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
+    0xB0, 0xB1, 0xB2, 0xB3, 0xB4
+]
+
 
 # CORE OPERATIONS -----------------------------------------------------
 
@@ -188,7 +199,11 @@ def encrypt_message():
 
     block_size = 54
     blocks = [plaintext[i:i + block_size] for i in range(0, len(plaintext), block_size)]
-    blocks[-1] = blocks[-1].ljust(block_size, '~')
+    
+    if len(blocks[-1]) < block_size:
+        pad_len = block_size - len(blocks[-1])
+        pads = [secrets.choice(PADDING_BYTES) for _ in range(pad_len)]
+        blocks[-1] = blocks[-1] + ''.join(chr(b) for b in pads)
 
     key = generate_256bit_key()
     key_hex = key_to_hex(key)
@@ -264,9 +279,82 @@ def decrypt_message():
         print_cube(decrypted)
         decrypted_blocks.append("".join(chr(c) for c in decrypted))
 
-    message = "".join(decrypted_blocks).rstrip('~')
+    raw = [ord(c) for c in "".join(decrypted_blocks)]
+    while raw and raw[-1] in PADDING_BYTES:
+        raw.pop()
+    message = ''.join(chr(b) for b in raw)
+
     print("\n=== ✅ Decryption Complete ===")
     print(f"📜 Decrypted message: '{message}'\n")
+
+
+def benchmark_performance():
+    print("\n=== 🚀 Rubik's Cube Cipher Performance Benchmark ===")
+    sample_text = "THIS IS A PERFORMANCE TEST MESSAGE FOR RUBIK CIPHER."
+    block_size = 54
+
+    # Measure Key Generation Time
+    t0 = time.perf_counter()
+    key = generate_256bit_key()
+    key_hex = key_to_hex(key)
+    t1 = time.perf_counter()
+    keygen_time = t1 - t0
+
+    # Prepare padding
+    blocks = [sample_text[i:i + block_size] for i in range(0, len(sample_text), block_size)]
+    if len(blocks[-1]) < block_size:
+        pad_len = block_size - len(blocks[-1])
+        pads = [secrets.choice(PADDING_BYTES) for _ in range(pad_len)]
+        blocks[-1] = blocks[-1] + ''.join(chr(b) for b in pads)
+
+    key_moves = derive_moves_from_key(key, num_moves=20)
+
+    # Measure Encryption Time
+    t2 = time.perf_counter()
+    encrypted_blocks = []
+    for block in blocks:
+        ascii_block = [ord(c) for c in block]
+        encrypted = apply_moves(ascii_block[:], key_moves)
+        encrypted_blocks.append("".join(chr(c) for c in encrypted))
+    ciphertext = "".join(encrypted_blocks)
+
+
+    # Keyspace calculations
+    true_keyspace_bits = 256
+    true_keyspace_size = 2 ** true_keyspace_bits
+
+    t3 = time.perf_counter()
+    encryption_time = t3 - t2
+
+    # Measure Decryption Time
+    inverted_moves = invert_moves(key_moves)
+    t4 = time.perf_counter()
+    decrypted_blocks = []
+    for block in encrypted_blocks:
+        ascii_block = [ord(c) for c in block]
+        decrypted = apply_moves(ascii_block[:], inverted_moves)
+        decrypted_blocks.append("".join(chr(c) for c in decrypted))
+    raw = [ord(c) for c in "".join(decrypted_blocks)]
+    while raw and raw[-1] in PADDING_BYTES:
+        raw.pop()
+    decrypted_text = ''.join(chr(b) for b in raw)
+    t5 = time.perf_counter()
+    decryption_time = t5 - t4
+
+    # Total turnaround time
+    total_time = keygen_time + encryption_time + decryption_time
+
+    # Display results
+    print("\n📊 Performance Results:")
+    print(f"🧬 Key Generation Time:      {keygen_time:.6f} seconds")
+    print(f"🔒 Encryption Time:          {encryption_time:.6f} seconds")
+    print(f"🔓 Decryption Time:          {decryption_time:.6f} seconds")
+    print(f"⚡ Total Turnaround Time:     {total_time:.6f} seconds")
+    print(f"\n📝 Decrypted text: '{decrypted_text}'")
+    print(f"🔐 Encrypted Ciphertext: {ciphertext}")
+    print(f"🔑 Key: {key_hex}\n")
+
+    print("=== ⭐ Benchmark Complete ===\n")
 
 # MAIN MENU ----------------------------------------------------------
 
@@ -275,7 +363,8 @@ if __name__ == "__main__":
         print("=== Rubik's Cube Cipher (256-bit Key) ===")
         print("1. Encrypt (Auto-generate 256-bit key)")
         print("2. Decrypt (Using 256-bit key)")
-        print("3. Exit")
+        print("3. Benchmark Encryption/Decryption Speed")
+        print("4. Exit")
 
         choice = input("Select an option (1-3): ").strip()
         if choice == "1":
@@ -283,7 +372,8 @@ if __name__ == "__main__":
         elif choice == "2":
             decrypt_message()
         elif choice == "3":
+            benchmark_performance()
+        elif choice == "4":
             print("👋 Exiting program. Goodbye!")
-            break
         else:
             print("❌ Invalid option. Please select 1-3.\n")
