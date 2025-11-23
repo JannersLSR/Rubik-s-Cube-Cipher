@@ -1,166 +1,229 @@
 import secrets
 
-# === CORE CUBE LOGIC ===
+PADDING_BYTES = [
+    0xA1, 0xA2, 0xA3, 0xA4, 0xA5,
+    0xA6, 0xA7, 0xA8, 0xA9, 0xAA,
+    0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
+    0xB0, 0xB1, 0xB2, 0xB3, 0xB4
+]
 
-def rotate_face(f): return [f[6], f[3], f[0], f[7], f[4], f[1], f[8], f[5], f[2]]
-def rotate_face_ccw(f): return [f[2], f[5], f[8], f[1], f[4], f[7], f[0], f[3], f[6]]
+def rotate_face(face):
+    return [face[6], face[3], face[0],
+            face[7], face[4], face[1],
+            face[8], face[5], face[2]]
 
-def split_into_faces(c):
-    return {"U": c[0:9], "F": c[9:18], "R": c[18:27],
-            "L": c[27:36], "B": c[36:45], "D": c[45:54]}
+def rotate_face_ccw(face):
+    return [face[2], face[5], face[8],
+            face[1], face[4], face[7],
+            face[0], face[3], face[6]]
 
-def flatten_faces(f):
-    return f["U"] + f["F"] + f["R"] + f["L"] + f["B"] + f["D"]
+def split_into_faces(cube):
+    return {
+        "U": cube[0:9],
+        "F": cube[9:18],
+        "R": cube[18:27],
+        "L": cube[27:36],
+        "B": cube[36:45],
+        "D": cube[45:54],
+    }
 
-def move(cube, m):
+def flatten_faces(faces):
+    return faces["U"] + faces["F"] + faces["R"] + faces["L"] + faces["B"] + faces["D"]
+
+def move(cube, notation):
     f = split_into_faces(cube)
-    if m == "U":
+
+    if notation == "U":
         f["U"] = rotate_face(f["U"])
-        t = f["F"][:3]
-        f["F"][:3], f["R"][:3], f["B"][:3], f["L"][:3] = f["R"][:3], f["B"][:3], f["L"][:3], t
-    elif m == "U'":
+        temp = f["F"][0:3]
+        f["F"][0:3] = f["R"][0:3]
+        f["R"][0:3] = f["B"][0:3]
+        f["B"][0:3] = f["L"][0:3]
+        f["L"][0:3] = temp
+    elif notation == "U'":
         f["U"] = rotate_face_ccw(f["U"])
-        t = f["F"][:3]
-        f["F"][:3], f["L"][:3], f["B"][:3], f["R"][:3] = f["L"][:3], f["B"][:3], f["R"][:3], t
-    elif m == "D":
+        temp = f["F"][0:3]
+        f["F"][0:3] = f["L"][0:3]
+        f["L"][0:3] = f["B"][0:3]
+        f["B"][0:3] = f["R"][0:3]
+        f["R"][0:3] = temp
+    elif notation == "D":
         f["D"] = rotate_face(f["D"])
-        t = f["F"][6:9]
-        f["F"][6:9], f["L"][6:9], f["B"][6:9], f["R"][6:9] = f["L"][6:9], f["B"][6:9], f["R"][6:9], t
-    elif m == "D'":
+        temp = f["F"][6:9]
+        f["F"][6:9] = f["L"][6:9]
+        f["L"][6:9] = f["B"][6:9]
+        f["B"][6:9] = f["R"][6:9]
+        f["R"][6:9] = temp
+    elif notation == "D'":
         f["D"] = rotate_face_ccw(f["D"])
-        t = f["F"][6:9]
-        f["F"][6:9], f["R"][6:9], f["B"][6:9], f["L"][6:9] = f["R"][6:9], f["B"][6:9], f["L"][6:9], t
-    elif m == "F":
+        temp = f["F"][6:9]
+        f["F"][6:9] = f["R"][6:9]
+        f["R"][6:9] = f["B"][6:9]
+        f["B"][6:9] = f["L"][6:9]
+        f["L"][6:9] = temp
+    elif notation == "F":
         f["F"] = rotate_face(f["F"])
-        t = [f["U"][6], f["U"][7], f["U"][8]]
-        f["U"][6], f["U"][7], f["U"][8], f["L"][2], f["L"][5], f["L"][8], f["D"][0], f["D"][1], f["D"][2], f["R"][0], f["R"][3], f["R"][6] = \
-        f["L"][8], f["L"][5], f["L"][2], f["D"][0], f["D"][1], f["D"][2], f["R"][6], f["R"][3], f["R"][0], t[0], t[1], t[2]
-    elif m == "F'":
+        temp = [f["U"][6], f["U"][7], f["U"][8]]
+        f["U"][6], f["U"][7], f["U"][8] = f["L"][8], f["L"][5], f["L"][2]
+        f["L"][2], f["L"][5], f["L"][8] = f["D"][0], f["D"][1], f["D"][2]
+        f["D"][0], f["D"][1], f["D"][2] = f["R"][6], f["R"][3], f["R"][0]
+        f["R"][0], f["R"][3], f["R"][6] = temp[0], temp[1], temp[2]
+    elif notation == "F'":
         f["F"] = rotate_face_ccw(f["F"])
-        t = [f["U"][6], f["U"][7], f["U"][8]]
-        f["U"][6], f["U"][7], f["U"][8], f["R"][0], f["R"][3], f["R"][6], f["D"][0], f["D"][1], f["D"][2], f["L"][2], f["L"][5], f["L"][8] = \
-        f["R"][0], f["R"][3], f["R"][6], f["D"][2], f["D"][1], f["D"][0], f["L"][2], f["L"][5], f["L"][8], t[2], t[1], t[0]
-    elif m == "B":
+        temp = [f["U"][6], f["U"][7], f["U"][8]]
+        f["U"][6], f["U"][7], f["U"][8] = f["R"][0], f["R"][3], f["R"][6]
+        f["R"][0], f["R"][3], f["R"][6] = f["D"][2], f["D"][1], f["D"][0]
+        f["D"][0], f["D"][1], f["D"][2] = f["L"][2], f["L"][5], f["L"][8]
+        f["L"][2], f["L"][5], f["L"][8] = temp[2], temp[1], temp[0]
+    elif notation == "B":
         f["B"] = rotate_face(f["B"])
-        t = [f["U"][0], f["U"][1], f["U"][2]]
-        f["U"][0], f["U"][1], f["U"][2], f["R"][2], f["R"][5], f["R"][8], f["D"][6], f["D"][7], f["D"][8], f["L"][0], f["L"][3], f["L"][6] = \
-        f["R"][2], f["R"][5], f["R"][8], f["D"][8], f["D"][7], f["D"][6], f["L"][0], f["L"][3], f["L"][6], t[2], t[1], t[0]
-    elif m == "B'":
+        temp = [f["U"][0], f["U"][1], f["U"][2]]
+        f["U"][0], f["U"][1], f["U"][2] = f["R"][2], f["R"][5], f["R"][8]
+        f["R"][2], f["R"][5], f["R"][8] = f["D"][8], f["D"][7], f["D"][6]
+        f["D"][6], f["D"][7], f["D"][8] = f["L"][0], f["L"][3], f["L"][6]
+        f["L"][0], f["L"][3], f["L"][6] = temp[2], temp[1], temp[0]
+    elif notation == "B'":
         f["B"] = rotate_face_ccw(f["B"])
-        t = [f["U"][0], f["U"][1], f["U"][2]]
-        f["U"][0], f["U"][1], f["U"][2], f["L"][0], f["L"][3], f["L"][6], f["D"][6], f["D"][7], f["D"][8], f["R"][2], f["R"][5], f["R"][8] = \
-        f["L"][6], f["L"][3], f["L"][0], f["D"][6], f["D"][7], f["D"][8], f["R"][8], f["R"][5], f["R"][2], t[0], t[1], t[2]
-    elif m == "R":
+        temp = [f["U"][0], f["U"][1], f["U"][2]]
+        f["U"][0], f["U"][1], f["U"][2] = f["L"][6], f["L"][3], f["L"][0]
+        f["L"][0], f["L"][3], f["L"][6] = f["D"][6], f["D"][7], f["D"][8]
+        f["D"][6], f["D"][7], f["D"][8] = f["R"][8], f["R"][5], f["R"][2]
+        f["R"][2], f["R"][5], f["R"][8] = temp[0], temp[1], temp[2]
+    elif notation == "R":
         f["R"] = rotate_face(f["R"])
-        t = [f["U"][2], f["U"][5], f["U"][8]]
-        f["U"][2], f["U"][5], f["U"][8], f["F"][2], f["F"][5], f["F"][8], f["D"][2], f["D"][5], f["D"][8], f["B"][0], f["B"][3], f["B"][6] = \
-        f["F"][2], f["F"][5], f["F"][8], f["D"][2], f["D"][5], f["D"][8], f["B"][6], f["B"][3], f["B"][0], t[2], t[1], t[0]
-    elif m == "R'":
+        temp = [f["U"][2], f["U"][5], f["U"][8]]
+        f["U"][2], f["U"][5], f["U"][8] = f["F"][2], f["F"][5], f["F"][8]
+        f["F"][2], f["F"][5], f["F"][8] = f["D"][2], f["D"][5], f["D"][8]
+        f["D"][2], f["D"][5], f["D"][8] = f["B"][6], f["B"][3], f["B"][0]
+        f["B"][0], f["B"][3], f["B"][6] = temp[2], temp[1], temp[0]
+    elif notation == "R'":
         f["R"] = rotate_face_ccw(f["R"])
-        t = [f["U"][2], f["U"][5], f["U"][8]]
-        f["U"][2], f["U"][5], f["U"][8], f["B"][0], f["B"][3], f["B"][6], f["D"][2], f["D"][5], f["D"][8], f["F"][2], f["F"][5], f["F"][8] = \
-        f["B"][6], f["B"][3], f["B"][0], f["D"][8], f["D"][5], f["D"][2], f["F"][2], f["F"][5], f["F"][8], t[0], t[1], t[2]
-    elif m == "L":
+        temp = [f["U"][2], f["U"][5], f["U"][8]]
+        f["U"][2], f["U"][5], f["U"][8] = f["B"][6], f["B"][3], f["B"][0]
+        f["B"][0], f["B"][3], f["B"][6] = f["D"][8], f["D"][5], f["D"][2]
+        f["D"][2], f["D"][5], f["D"][8] = f["F"][2], f["F"][5], f["F"][8]
+        f["F"][2], f["F"][5], f["F"][8] = temp[0], temp[1], temp[2]
+    elif notation == "L":
         f["L"] = rotate_face(f["L"])
-        t = [f["U"][0], f["U"][3], f["U"][6]]
-        f["U"][0], f["U"][3], f["U"][6], f["B"][2], f["B"][5], f["B"][8], f["D"][0], f["D"][3], f["D"][6], f["F"][0], f["F"][3], f["F"][6] = \
-        f["B"][8], f["B"][5], f["B"][2], f["D"][0], f["D"][3], f["D"][6], f["F"][0], f["F"][3], f["F"][6], t[0], t[1], t[2]
-    elif m == "L'":
+        temp = [f["U"][0], f["U"][3], f["U"][6]]
+        f["U"][0], f["U"][3], f["U"][6] = f["B"][8], f["B"][5], f["B"][2]
+        f["B"][2], f["B"][5], f["B"][8] = f["D"][6], f["D"][3], f["D"][0]
+        f["D"][0], f["D"][3], f["D"][6] = f["F"][0], f["F"][3], f["F"][6]
+        f["F"][0], f["F"][3], f["F"][6] = temp[0], temp[1], temp[2]
+    elif notation == "L'":
         f["L"] = rotate_face_ccw(f["L"])
-        t = [f["U"][0], f["U"][3], f["U"][6]]
-        f["U"][0], f["U"][3], f["U"][6], f["F"][0], f["F"][3], f["F"][6], f["D"][0], f["D"][3], f["D"][6], f["B"][2], f["B"][5], f["B"][8] = \
-        f["F"][0], f["F"][3], f["F"][6], f["D"][0], f["D"][3], f["D"][6], f["B"][8], f["B"][5], f["B"][2], t[2], t[1], t[0]
+        temp = [f["U"][0], f["U"][3], f["U"][6]]
+        f["U"][0], f["U"][3], f["U"][6] = f["F"][0], f["F"][3], f["F"][6]
+        f["F"][0], f["F"][3], f["F"][6] = f["D"][0], f["D"][3], f["D"][6]
+        f["D"][0], f["D"][3], f["D"][6] = f["B"][8], f["B"][5], f["B"][2]
+        f["B"][2], f["B"][5], f["B"][8] = temp[2], temp[1], temp[0]
+
     return flatten_faces(f)
 
-def apply_moves(cube, seq):
-    for m in seq.split(): cube = move(cube, m)
+def apply_moves(cube, moves):
+    for m in moves.split():
+        cube = move(cube, m)
     return cube
 
-def invert_moves(seq):
-    out = []
-    for m in reversed(seq.split()):
-        out.append(m[:-1] if m.endswith("'") else m + "'")
-    return " ".join(out)
+def invert_moves(moves):
+    inverted = []
+    for m in reversed(moves.split()):
+        inverted.append(m[:-1] if m.endswith("'") else m + "'")
+    return " ".join(inverted)
 
-# === KEY GENERATION & MOVE DERIVATION ===
+def generate_256bit_key():
+    return secrets.token_bytes(32)
 
-def gen_key(): return secrets.token_bytes(32)
-def key_to_hex(k): return k.hex()
-def hex_to_key(h): return bytes.fromhex(h)
+def key_to_hex(key):
+    return key.hex()
 
-def derive_moves(k, n=20):
-    base = ["U","U'","D","D'","F","F'","B","B'","R","R'","L","L'"]
-    e = k
-    while len(e) < n:
-        e += bytes([b ^ e[i % len(k)] for i, b in enumerate(e)])
-    return " ".join(base[e[i] % len(base)] for i in range(n))
+def hex_to_key(hex_string):
+    return bytes.fromhex(hex_string)
 
-# === ENCRYPTION ===
+def derive_moves_from_key(key, num_moves=20):
+    moves_list = ["U", "U'", "D", "D'", "F", "F'", "B", "B'", "R", "R'", "L", "L'"]
+    extended_key = key
+    while len(extended_key) < num_moves:
+        extended_key += bytes([b ^ extended_key[i % len(key)] for i, b in enumerate(extended_key)])
+    derived_moves = [moves_list[extended_key[i] % len(moves_list)] for i in range(num_moves)]
+    return " ".join(derived_moves)
 
 def encrypt_message():
-    msg = input("Enter plaintext: ").strip()
-    if not msg:
-        print("❌ Empty input.")
-        return
+    while True:
+        plaintext = input("Enter plaintext: ").strip()
+        if not plaintext:
+            print("Error: Plaintext cannot be empty. Try again.")
+            continue
+        break
 
-    bs = 54
-    blocks = [msg[i:i+bs] for i in range(0, len(msg), bs)]
-    blocks[-1] = blocks[-1].ljust(bs, '~')
+    block_size = 54
+    blocks = [plaintext[i:i + block_size] for i in range(0, len(plaintext), block_size)]
+    
+    if len(blocks[-1]) < block_size:
+        pad_len = block_size - len(blocks[-1])
+        pads = [secrets.choice(PADDING_BYTES) for _ in range(pad_len)]
+        blocks[-1] = blocks[-1] + ''.join(chr(b) for b in pads)
 
-    key = gen_key()
+    key = generate_256bit_key()
     key_hex = key_to_hex(key)
-    moves = derive_moves(key)
+    key_moves = derive_moves_from_key(key, num_moves=20)
 
-    enc_blocks = []
-    for b in blocks:
-        arr = [ord(x) for x in b]
-        out = apply_moves(arr[:], moves)
-        enc_blocks.append("".join(chr(c) for c in out))
+    encrypted_blocks = []
 
-    cipher = "".join(enc_blocks)
-    print("\n=== ✅ Encryption Complete ===")
-    print(f"Ciphertext:\n{cipher}\n")
-    print(f"Key (256-bit):\n{key_hex}\n")
+    print("=== Encryption Process Start ===")
+    for i, block in enumerate(blocks):
+        ascii_block = [ord(c) for c in block]
+        encrypted = apply_moves(ascii_block[:], key_moves)
+        encrypted_blocks.append("".join(chr(c) for c in encrypted))
 
-# === DECRYPTION ===
+    ciphertext = "".join(encrypted_blocks)
+    print("\n=== Encryption Complete ===")
+    print(f"Ciphertext:\n{ciphertext}\n")
+    print("Save this key to decrypt:\n" + key_hex + "\n")
 
 def decrypt_message():
-    bs = 54
-    cipher = input("Enter ciphertext: ").strip()
-    if not cipher:
-        print("❌ Empty input.")
-        return
-    if len(cipher) % bs != 0:
-        print(f"❌ Ciphertext length must be multiple of {bs}.")
-        return
+    block_size = 54
 
-    k_hex = input("Enter 256-bit key (64 hex): ").strip()
-    if len(k_hex) != 64:
-        print("❌ Invalid key length.")
-        return
+    while True:
+        ciphertext = input("Enter full ciphertext: ").strip()
+        if not ciphertext:
+            print("Error: Ciphertext cannot be empty. Try again.")
+            continue
+        if len(ciphertext) % block_size != 0:
+            print(f"Error: Ciphertext length must be multiple of {block_size}. Try again.")
+            continue
+        break
 
-    try:
-        key = hex_to_key(k_hex)
-    except ValueError:
-        print("❌ Invalid key format.")
-        return
+    while True:
+        key_hex = input("Enter 256-bit key (64 hex chars): ").strip()
+        if len(key_hex) != 64:
+            print("Error: Key must be exactly 64 hex characters. Try again.")
+            continue
+        try:
+            key = hex_to_key(key_hex)
+            break
+        except ValueError:
+            print("Error: Invalid hexadecimal format. Try again.")
 
-    moves = derive_moves(key)
-    inv = invert_moves(moves)
-    blocks = [cipher[i:i+bs] for i in range(0, len(cipher), bs)]
+    key_moves = derive_moves_from_key(key, num_moves=20)
+    inverted_moves = invert_moves(key_moves)
 
-    out_blocks = []
-    for b in blocks:
-        arr = [ord(x) for x in b]
-        d = apply_moves(arr[:], inv)
-        out_blocks.append("".join(chr(x) for x in d))
+    blocks = [ciphertext[i:i + block_size] for i in range(0, len(ciphertext), block_size)]
+    decrypted_blocks = []
 
-    msg = "".join(out_blocks).rstrip('~')
-    print("\n=== ✅ Decryption Complete ===")
-    print(f"Decrypted message:\n{msg}\n")
+    print("=== Decryption Process Start ===")
+    for i, block in enumerate(blocks):
+        ascii_block = [ord(c) for c in block]
+        decrypted = apply_moves(ascii_block[:], inverted_moves)
+        decrypted_blocks.append("".join(chr(c) for c in decrypted))
 
+    raw = [ord(c) for c in "".join(decrypted_blocks)]
+    while raw and raw[-1] in PADDING_BYTES:
+        raw.pop()
+    message = ''.join(chr(b) for b in raw)
 
-# === MAIN MENU ===
+    print("\n=== Decryption Complete ===")
+    print(f"Decrypted message: '{message}'\n")
 
 if __name__ == "__main__":
     while True:
@@ -168,11 +231,14 @@ if __name__ == "__main__":
         print("1. Encrypt")
         print("2. Decrypt")
         print("3. Exit")
-        c = input("Select an option (1-3): ").strip()
-        if c == "1": encrypt_message()
-        elif c == "2": decrypt_message()
-        elif c == "3":
-            print("👋 Exiting program. Goodbye!")
+
+        choice = input("Select an option (1-3): ").strip()
+        if choice == "1":
+            encrypt_message()
+        elif choice == "2":
+            decrypt_message()
+        elif choice == "3":
+            print("Exiting program.")
             break
         else:
-            print("❌ Invalid choice.\n")
+            print("Invalid option. Please select 1-3.\n")
